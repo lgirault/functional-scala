@@ -5,33 +5,40 @@ package net.degoes.essentials
 object types {
   type ??? = Nothing
 
+  sealed trait MyOption[+A]   // MyOption == MySome + MyNone
+  case class MySome[A](value: A) extends MyOption[A]
+  case object MyNone extends MyOption[Nothing]
+
+  case class CodingExample(b : Boolean, i : Int) /// Boolean * Int
+
   //
   // EXERCISE 1
   //
   // List all values of the type `Unit`.
   //
-  val UnitValues: Set[Unit] = ???
+  val UnitValues: Set[Unit] = Set( () )
 
   //
   // EXERCISE 2
   //
   // List all values of the type `Nothing`.
   //
-  val NothingValues: Set[Nothing] = ???
+  val NothingValues: Set[Nothing] = Set.empty
 
   //
   // EXERCISE 3
   //
   // List all values of the type `Boolean`.
   //
-  val BoolValues: Set[Boolean] = ???
+  val BoolValues: Set[Boolean] = Set(true, false)
 
   //
   // EXERCISE 4
   //
   // List all values of the type `Either[Unit, Boolean]`.
   //
-  val EitherUnitBoolValues: Set[Either[Unit, Boolean]] = ???
+  val EitherUnitBoolValues: Set[Either[Unit, Boolean]] =
+    Set(Left(()), Right(true), Right(false))
 
   //
   // EXERCISE 5
@@ -39,14 +46,17 @@ object types {
   // List all values of the type `(Boolean, Boolean)`.
   //
   val TupleBoolBoolValues: Set[(Boolean, Boolean)] =
-    ???
+    for {
+      b1 <- Set(true, false)
+      b2 <- Set(true, false)
+    } yield (b1, b2)
 
   //
   // EXERCISE 6
   //
   // List all values of the type `Either[Either[Unit, Unit], Unit]`.
   //
-  val EitherEitherUnitUnitUnitValues: Set[Either[Either[Unit, Unit], Unit]] = ???
+  val EitherEitherUnitUnitUnitValues: Set[Either[Either[Unit, Unit], Unit]] = Set(Left(Left(()) ), Left(Right(())), Right( () ))
 
   //
   // EXERCISE 7
@@ -57,7 +67,11 @@ object types {
   //
   // List all the elements in `A * B`.
   //
-  val AProductB: Set[(Boolean, String)] = ???
+  val AProductB: Set[(Boolean, String)] =
+  for {
+    b1 <- Set(true, false)
+    b2 <- Set("red", "green", "blue")
+  } yield (b1, b2)
 
   //
   // EXERCISE 8
@@ -68,7 +82,16 @@ object types {
   //
   // List all the elements in `A + B`.
   //
-  val ASumB: Set[Either[Boolean, String]] = ???
+  val ASumB: Set[Either[Boolean, String]] = {
+
+    val bs = Set(true, false).map(Left[Boolean, String].apply)
+    val cs = Set("red", "green", "blue").map(Right[Boolean, String].apply)
+
+
+    val x: Set[Either[Boolean, String]] = bs ++ cs
+
+    x
+  }
 
   //
   // EXERCISE 9

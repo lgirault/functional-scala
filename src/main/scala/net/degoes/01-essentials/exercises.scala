@@ -2,6 +2,8 @@
 
 package net.degoes.essentials
 
+import scala.util.Try
+
 object types {
   type ??? = Nothing
 
@@ -99,8 +101,8 @@ object types {
   // Create a product type of `Int` and `String`, representing the age and
   // name of a person.
   //
-  type Person1 = ???
-  final case class Person2(/*  */)
+  type Person1 = (Int, String)
+  final case class Person2(age: Int, name: String)
 
   //
   // EXERCISE 10
@@ -108,8 +110,8 @@ object types {
   // Prove that `A * 1` is equivalent to `A` by implementing the following two
   // functions.
   //
-  def to1[A](t: (A, Unit)): A = ???
-  def from1[A](a: A): (A, Unit) = ???
+  def to1[A](t: (A, Unit)): A = t._1
+  def from1[A](a: A): (A, Unit) = (a, ())
 
   //
   // EXERCISE 11
@@ -117,8 +119,8 @@ object types {
   // Prove that `A * 0` is equivalent to `0` by implementing the following two
   // functions.
   //
-  def to2[A](t: (A, Nothing)): Nothing = ???
-  def from2[A](n: Nothing): (A, Nothing) = ???
+  def to2[A](t: (A, Nothing)): Nothing = t._2
+  def from2[A](n: Nothing): (A, Nothing) = (n, n)
 
   //
   // EXERCISE 12
@@ -126,17 +128,27 @@ object types {
   // Create a sum type of `Int` and `String` representing the identifier of
   // a robot (a number) or the identifier of a person (a name).
   //
-  type Identifier1 = ???
+  type Identifier1 = Either[Int, String]
   sealed trait Identifier2
+  final case class RobotIdentifier(value : Int) extends Identifier2
+  final case class PersonName(value : String) extends Identifier2
 
+  def toX(t : Identifier1) : Identifier2 = t match {
+    case Left(x : Int) => RobotIdentifier(x)
+    case Right(x : String) => PersonName(x)
+  }
   //
   // EXERCISE 13
   //
   // Prove that `A + 0` is equivalent to `A` by implementing the following two
   // functions.
   //
-  def to3[A](t: Either[A, Nothing]): A = ???
-  def from3[A](a: A): Either[A, Nothing] = ???
+  def absurd[A](n: Nothing): A = n
+  def to3[A](t: Either[A, Nothing]): A = t match {
+    case Left(value) => value
+    case Right(value) => absurd(value)
+  }
+  def from3[A](a: A): Either[A, Nothing] = Left(a)
 
   //
   // EXERCISE 14
@@ -144,7 +156,7 @@ object types {
   // Create either a sum type or a product type (as appropriate) to represent a
   // credit card, which has a number, an expiration date, and a security code.
   //
-  type CreditCard = ???
+  type CreditCard = (Int, Int, Int)
 
   //
   // EXERCISE 15
@@ -153,7 +165,11 @@ object types {
   // payment method, which could be a credit card, bank account, or
   // cryptocurrency.
   //
-  type PaymentMethod = ???
+  sealed trait PM
+  case object CreditCard extends PM
+  case object BankAccount extends PM
+  case object Crypto extends PM
+  type PaymentMethod = PM
 
   //
   // EXERCISE 16
@@ -180,8 +196,8 @@ object types {
   //
   final case class Programmer private (level: Int) 
   object Programmer {
-    def apply(level: Int): Option[Programmer] = 
-      ???
+    def apply(level: Int): Option[Programmer] =
+      if(level >= 0) Some(new Programmer(level)) else None
   }
 
   //
@@ -215,7 +231,7 @@ object functions {
   // Convert the following non-function into a function.
   //
   def parseInt1(s: String): Int = s.toInt
-  def parseInt2(s: String): ??? = ???
+  def parseInt2(s: String): Option[Int] = Try(s.toInt).toOption
 
   //
   // EXERCISE 2
@@ -224,7 +240,11 @@ object functions {
   //
   def arrayUpdate1[A](arr: Array[A], i: Int, f: A => A): Unit =
     arr.update(i, f(arr(i)))
-  def arrayUpdate2[A](arr: Array[A], i: Int, f: A => A): ??? = ???
+  def arrayUpdate2[A](arr: Array[A], i: Int, f: A => A): Option[Array[A]] = Try {
+    val copy = arr.clone()
+    copy.update(i, f(copy(i)))
+    copy
+  }.toOption
 
   //
   // EXERCISE 3
@@ -232,7 +252,7 @@ object functions {
   // Convert the following non-function into a function.
   //
   def divide1(a: Int, b: Int): Int = a / b
-  def divide2(a: Int, b: Int): ??? = ???
+  def divide2(a: Int, b: Int): Option[Int] = Try(a/b).toOption
 
   //
   // EXERCISE 4
@@ -245,7 +265,7 @@ object functions {
     id += 1
     newId
   }
-  def freshId2(/* ??? */): (Int, Int) = ???
+  def freshId2(id : Int): (Int, Int) = (id, id + 1)
 
   //
   // EXERCISE 5

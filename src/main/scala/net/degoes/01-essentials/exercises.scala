@@ -2,6 +2,8 @@
 
 package net.degoes.essentials
 
+import java.time.Clock
+
 import scala.util.Try
 
 object types {
@@ -274,7 +276,7 @@ object functions {
   //
   import java.time.LocalDateTime
   def afterOneHour1: LocalDateTime = LocalDateTime.now.plusHours(1)
-  def afterOneHour2(/* ??? */): LocalDateTime = ???
+  def afterOneHour2(now : LocalDateTime): LocalDateTime = now.plusHours(1)
 
   //
   // EXERCISE 6
@@ -285,7 +287,10 @@ object functions {
     if (as.length == 0) println("Oh no, it's impossible!!!")
     as.head
   }
-  def head2[A](as: List[A]): ??? = ???
+  def head2[A](as: List[A]): Either[String, A] = as match {
+    case hd :: _ => Right(hd)
+    case _ => Left("Oh no, it's impossible!!!")
+  }
 
   //
   // EXERCISE 7
@@ -305,28 +310,31 @@ object functions {
     coffee
   }
   final case class Charge(account: Account, amount: Double)
-  def buyCoffee2(account: Account): ??? = ???
+  def buyCoffee2(account: Account): (Charge, Coffee) = {
+    val coffee = Coffee()
+    (Charge(account, coffee.price), coffee)
+  }
 
   //
   // EXERCISE 8
   //
   // Implement the following function under the Scalazzi subset of Scala.
   //
-  def printLine(line: String): Unit = ???
+  def printLine(line: String): Unit = ()
 
   //
   // EXERCISE 9
   //
   // Implement the following function under the Scalazzi subset of Scala.
   //
-  def readLine: String = ???
+  def readLine: String = ""
 
   //
   // EXERCISE 10
   //
   // Implement the following function under the Scalazzi subset of Scala.
   //
-  def systemExit(code: Int): Unit = ???
+  def systemExit(code: Int): Unit = ()
 
   //
   // EXERCISE 11
@@ -340,8 +348,13 @@ object functions {
     println("For help on a command, type `help <command>`")
     println("To exit the help page, type `exit`.")
   }
-  def printer2[A](println: String => A, combine: (A, A) => A): A =
-    ???
+  def printer2[A](println: String => A, combine: (A, A) => A): A = {
+    val printlns = List(println("Welcome to the help page!"),
+         println("To list commands, type `commands`."),
+         println("For help on a command, type `help <command>`"),
+         println("To exit the help page, type `exit`."))
+    printlns.reduce(combine)
+  }
 
   //
   // EXERCISE 12
@@ -378,7 +391,28 @@ object functions {
     def finish(): List[List[Boolean]] =
       canvas.map(_.toList).toList
   }
-  def draw2(size: Int /* ... */): ??? = ???
+
+  case class Draw2 private(size: Int, x: Int, y: Int, private[this] val canvas: Array[Array[Boolean]]) {
+    def goLeft: Draw2 =
+      copy(x = x - 1)
+    def goRight: Draw2 =
+      copy(x = x + 1)
+    def goUp: Draw2 =
+      copy(y = y - 1)
+    def goDown: Draw2 =
+      copy(y = y + 1)
+    def draw: Option[Draw2] = {
+      Try(canvas.updated(x, canvas(x).updated(y, true))).toOption
+        .map(newCanvas => copy(canvas = newCanvas))
+    }
+    def finish: List[List[Boolean]] =
+      canvas.map(_.toList).toList
+  }
+
+  object Draw2{
+    def apply(size : Int) = new Draw2(size, 0,0, Array.fill(size, size)(false))
+  }
+  def draw2(size: Int): Draw2 = Draw2(size)
 }
 
 object higher_order {
@@ -389,7 +423,7 @@ object higher_order {
   // Implement the following higher-order function.
   //
   def fanout[A, B, C](f: A => B, g: A => C): A => (B, C) =
-    ???
+    a => (f(a), g(a))
 
   //
   // EXERCISE 2
@@ -397,7 +431,7 @@ object higher_order {
   // Implement the following higher-order function.
   //
   def cross[A, B, C, D](f: A => B, g: C => D): (A, C) => (B, D) =
-    ???
+    {case (a,c) => (f(a), g(c)) }
 
   //
   // EXERCISE 3
@@ -405,7 +439,9 @@ object higher_order {
   // Implement the following higher-order function.
   //
   def either[A, B, C](f: A => B, g: C => B): Either[A, C] => B =
-    ???
+    { case Left(a) => f(a)
+      case Right(c) => g(c)
+    }
 
   //
   // EXERCISE 4
@@ -413,7 +449,9 @@ object higher_order {
   // Implement the following higher-order function.
   //
   def choice[A, B, C, D](f: A => B, g: C => D): Either[A, C] => Either[B, D] =
-    ???
+  { case Left(a) => Left(f(a))
+    case Right(c) => Right(g(c))
+  }
 
   //
   // EXERCISE 5
@@ -421,7 +459,7 @@ object higher_order {
   // Implement the following higher-order function.
   //
   def compose[A, B, C](f: B => C, g: A => B): A => C =
-    ???
+    a => f(g(a))
 
   //
   // EXERCISE 6
@@ -429,8 +467,19 @@ object higher_order {
   // Implement the following higher-order function. After you implement
   // the function, interpret its meaning.
   //
-  def alt[E1, E2, A, B](l: Parser[E1, A], r: E1 => Parser[E2, B]):
-    Parser[(E1, E2), Either[A, B]] = ???
+  def alt[E1, E2, A, B](l: Parser[E1, A], r: E1 => Parser[E2, B]): Parser[(E1, E2), Either[A, B]] =
+    Parser[(E1, E2), Either[A, B]] { str =>
+      val x: Either[E1, (String, A)] = l.run(str)
+      x match {
+        case Left(e1) =>
+          val toto: Either[E2, (String, B)] = r(e1).run(str)
+          toto match {
+            case Right((strb, b)) => Right((strb, Right(b)))
+            case Left(e2) => Left((e1, e2))
+          }
+        case Right((stra, a)) => Right((stra, Left(a)))
+      }
+  }
 
   case class Parser[+E, +A](run: String => Either[E, (String, A)])
   object Parser {

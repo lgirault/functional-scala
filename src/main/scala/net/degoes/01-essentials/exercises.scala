@@ -504,7 +504,10 @@ object poly_functions {
   // `snd` that returns the second element out of any pair of `A` and `B`.
   //
   object snd {
-    def apply[A, B](t: (A, B)): B = ???
+    def apply[A, B](t: (A, B)): B = {
+      val (_, b) = t
+        b
+    }
   }
   snd((1, "foo")) // "foo"
   snd((true, List(1, 2, 3))) // List(1, 2, 3)
@@ -517,8 +520,14 @@ object poly_functions {
   // `A` the specified number of times.
   //
   object repeat {
-    def apply[A](n: Int)(a: A, f: A => A): A =
-      ???
+    def apply[A](n: Int)(a: A, f: A => A): A = {
+      val res = f(a)
+
+      if (n > 0)
+        apply(n-1)(res, f)
+      else
+        res
+    }
   }
   repeat[       Int](100)(       0, _ +   1) // 100
   repeat[    String]( 10)(      "", _ + "*") // "**********"
@@ -529,17 +538,20 @@ object poly_functions {
   //
   // Count the number of unique implementations of the following method.
   //
-  def countExample1[A, B](a: A, b: B): Either[A, B] = ???
-  val countExample1Answer = ???
+  def countExample1a[A, B](a: A, b: B): Either[A, B] = Left(a)
+  def countExample1b[A, B](a: A, b: B): Either[A, B] = Right(b)
+  val countExample1Answer = 2
 
   //
   // EXERCISE 4
   //
   // Count the number of unique implementations of the following method.
   //
-  def countExample2[A, B](f: A => B, g: A => B, a: A): B =
-    ???
-  val countExample2Answer = ???
+  def countExample2a[A, B](f: A => B, g: A => B, a: A): B =
+    f(a)
+  def countExample2b[A, B](f: A => B, g: A => B, a: A): B =
+    g(a)
+  val countExample2Answer = 2
 
   //
   // EXERCISE 5
@@ -558,12 +570,21 @@ object poly_functions {
   val ExpectedResults =
     Map("2018-09-20" ->
       "On date 2018-09-20, there were 1 power outages")
-  def groupBy1(
-    events: List[String],
-    by: String => String)(
-      reducer: (String, List[String]) => String):
-      Map[String, String] =
-        ???
+
+  def groupBy1(events: List[String], by: String => String)
+              (reducer: (String, List[String]) => String):   Map[String, String] = {
+    val asd: Map[String, List[String]] = events.foldLeft(Map.empty[String, List[String]]){
+      case (acc, cur) =>
+        val k = by(cur)
+        val l = acc.getOrElse(k, Nil)
+
+        acc + (k -> (cur :: l))
+    }
+
+    asd.map{case (k, vs) => (k, reducer(k,vs))}
+
+  }
+
   groupBy1(TestData, ByDate)(Reducer) == ExpectedResults
 
   //
@@ -573,6 +594,20 @@ object poly_functions {
   // the polymorphic function. Compare to the original.
   //
   object groupBy2 {
+
+    def apply[K, V, R](events: List[V], by: V => K)
+             (reducer: (K, List[V]) => R):   Map[K, R] = {
+      val asd: Map[K, List[V]] = events.foldLeft(Map.empty[K, List[V]]){
+        case (acc, cur) =>
+          val k = by(cur)
+          val l = acc.getOrElse(k, Nil)
+
+          acc + (k -> (cur :: l))
+      }
+
+      asd.map{case (k, vs) => (k, reducer(k,vs))}
+
+    }
 
   }
   // groupBy2(TestData, ByDate)(Reducer) == ExpectedResults
@@ -584,6 +619,11 @@ object higher_kinded {
   type ????[A, B] = Nothing
   type ?????[F[_]] = Nothing
 
+  // String    // type :: *
+  // List[Int] // type :: *
+  // List      // type constructor :: * => *
+
+
   trait `* => *`[F[_]]
   trait `[*, *] => *`[F[_, _]]
   trait `(* => *) => *`[T[_[_]]]
@@ -594,7 +634,7 @@ object higher_kinded {
   // Identify a type constructor that takes one type parameter of kind `*`
   // (i.e. has kind `* => *`), and place your answer inside the square brackets.
   //
-  type Answer1 = `* => *`[???]
+  type Answer1 = `* => *`[List]
 
   //
   // EXERCISE 2
@@ -602,39 +642,41 @@ object higher_kinded {
   // Identify a type constructor that takes two type parameters of kind `*` (i.e.
   // has kind `[*, *] => *`), and place your answer inside the square brackets.
   //
-  type Answer2 = `[*, *] => *`[????]
+  type Answer2 = `[*, *] => *`[Map]
 
   //
   // EXERCISE 3
   //
   // Create a new type called `Answer3` that has kind `*`.
   //
-  trait Answer3 /*[]*/
+  trait Answer3[A]
 
   //
   // EXERCISE 4
   //
   // Create a trait with kind `[*, *, *] => *`.
   //
-  trait Answer4 /*[]*/
+  trait Answer4[F[_, _, _]]
 
-  def flip[A, B, C](f: (A, B) => C): (B, A) => C = ???
-  
+  def flip[A, B, C](f: (A, B) => C): (B, A) => C =
+    (b, a) => f(a, b)
 
   //
   // EXERCISE 5
   //
   // Create a new type that has kind `(* => *) => *`.
-  //
-  type NewType1 /* ??? */
-  type Answer5 = `(* => *) => *`[?????]
+  // List
+  type NewType1[F[_]]
+  type Answer5 = `(* => *) => *`[NewType1]
 
   //
   // EXERCISE 6
   //
   // Create a trait with kind `[* => *, (* => *) => *] => *`.
   //
-  trait Answer6 /*[]*/
+  trait Answer6[F[_],G[_[_]]]
+
+  type Answer6Example = Answer6[Option, NewType1]
 
   //
   // EXERCISE 7
